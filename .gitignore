@@ -1,0 +1,10 @@
+
+
+.env
+.DS_Store
+venv/
+
+
+AdventureShopNew/.DS_Store
+AdventureShopNew/db.sqlite3
+dump.json
