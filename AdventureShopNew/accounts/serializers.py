@@ -27,7 +27,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         
-        # Using Django's built-in User model for registration
+        # Using Django's built-in User model for registration (exctended the MyUser with abstractUser)
         model = MyUser
         
         
