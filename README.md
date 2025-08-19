@@ -41,6 +41,7 @@ Below are the main serializers I created for Adventure Shop, with a _***short***
 
 1. [UserRegisterSerializer](#1-userregisterserializer)
 2. [UserLoginSerializer](#2-userloginserializer)
+3. [UserForgotPasswordSerializer](#3-userforgotpasswordserializer)
 
 ### what are serializers?
 
@@ -111,3 +112,90 @@ so now everyone has randomized profile pictures and its saved so its not going t
 _We get to **is_active = False** Later in **VerifyEmailView**!_
 
 ### 2. UserLoginSerializer
+
+Like the name screams, this one handles logging users in.
+It validates the incoming data (email + password), and checks if the user exists if the password matches.
+If anything is off it spits back: "Invalid username or password".
+</br>
+
+```python
+def validate(self, data):
+
+        try:
+            userObj = MyUser.objects.get(email=data.get('email')).username
+        except MyUser.DoesNotExist:
+            raise serializers.ValidationError("Invalid username or password")
+        user = authenticate(
+            username= userObj,
+            password= data.get('password')
+        )
+
+```
+
+_**Note**:_ **(Djangos built in auth system needs username to login, you cant login with email, so i took the email and found the username assosiated with it and loged the user in, this way in the future i can login with both the username and password if i change the code a little, but it works for now!)**
+</br>
+</br>
+</br>
+</br>
+
+in this line:
+
+```python
+if not user.is_active:
+            return serializers.ValidationError("Please verify your email before logging in.")
+```
+
+**user.isActive** checks if the user is active, why?  
+because when a user registers they need to verify their email.  
+so their is active is set to **True** only after they verify their email  
+if not verifyed but registered: spit out _**(Please verify your email before logging in)**_
+
+### 3. UserForgotPasswordSerializer
+
+this serializer expects 2 fields **email** and **password**  
+it validates the data by creating an instance of the user by email from the model  
+ if it does not exists it raises a **ValidationError (email not registered)**
+
+```python
+    email = serializers.CharField()
+    password = serializers.CharField()
+
+    def validate(self, data):
+        try:
+
+            user = MyUser.objects.get(email=data.get('email'))
+        except MyUser.DoesNotExist:
+            raise serializers.ValidationError("Email not registered")
+
+
+```
+
+then it generates a **ResetPasswordToken**  
+and it encodes the id of the user in a **url** safe format
+
+```python
+    token = PasswordResetTokenGenerator().make_token(user)
+
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+```
+
+and returns the data (uid, token, user) back to the view
+
+### 2. CartSerializer
+
+here is the most horrifying thing i had to endore in this project _**The Cart Logic!**_  
+first I use the SerializerMethodField, the best explanation i could find was **(it calls a method to figure out what values to return)**
+
+```python
+    cart_items = serializers.SerializerMethodField()
+```
+
+then we have the **Meta Class** it gets the values **(only the cart_items)** inside the MyUser model
+
+```python
+class Meta:
+    model = MyUser
+    fields = ['cart_items']
+```

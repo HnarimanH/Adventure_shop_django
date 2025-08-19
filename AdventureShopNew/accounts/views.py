@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .serializers import UserRegisterSerializer, UserLoginSerializer, UserForgotPasswprdSerializer, CartSerializer
+from .serializers import UserRegisterSerializer, UserLoginSerializer, UserForgotPasswordSerializer, CartSerializer
 from rest_framework import status
 from django.contrib.auth import login
 from rest_framework_simplejwt.tokens import RefreshToken

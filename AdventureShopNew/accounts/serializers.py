@@ -101,7 +101,7 @@ class UserLoginSerializer(serializers.Serializer):
         
 
 
-class UserForgotPasswprdSerializer(serializers.Serializer):
+class UserForgotPasswordSerializer(serializers.Serializer):
     
     # Define expected fields for reseting password (email & password)
     email = serializers.CharField()
