@@ -5,7 +5,7 @@ This project exists to showcase my “incredible” backend skills… or lack th
 ## Hear Me Out
 
 Of course, I had the help of my bro _**ChatGPT**_.  
-This was my first time creating a project with Django, and let’s be honest—it’s pretty big for a first project.  
+This was my first time creating a project with Django, and let’s be honest, it’s pretty big for a first project.  
 I also needed to use _**DRF**_, which really helped me understand some pretty tricky concepts, like:
 
 - What **Serializers**, **Models**, **Views**, and **URLs** are
@@ -13,7 +13,7 @@ I also needed to use _**DRF**_, which really helped me understand some pretty tr
 - What a **.env** file does
 - How to publish code to GitHub without exposing sensitive keys
 
-So yeah… shoutout to ChatGPT for always supporting me and preventing me from crying when I hit a bug at 3AM. 😅
+So yeah… shoutout to ChatGPT for always supporting me and preventing me from crying when I hit a bug at 3AM.
 
 ## What This README Covers
 
@@ -42,6 +42,8 @@ Below are the main serializers I created for Adventure Shop, with a _***short***
 1. [UserRegisterSerializer](#1-userregisterserializer)
 2. [UserLoginSerializer](#2-userloginserializer)
 3. [UserForgotPasswordSerializer](#3-userforgotpasswordserializer)
+4. [CartSerializer](#4-cartserializer)
+5. [ProductSerializer](#5-productserializer)
 
 ### what are serializers?
 
@@ -183,7 +185,7 @@ and it encodes the id of the user in a **url** safe format
 
 and returns the data (uid, token, user) back to the view
 
-### 2. CartSerializer
+### 4. CartSerializer
 
 here is the most horrifying thing i had to endore in this project _**The Cart Logic!**_  
 first I use the SerializerMethodField, the best explanation i could find was **(it calls a method to figure out what values to return)**
@@ -199,3 +201,76 @@ class Meta:
     model = MyUser
     fields = ['cart_items']
 ```
+
+the function **get_cart_items** gets the user(obj) and looks for cart_entries in **MyUserProduct** models and then returns the filtered carts
+
+```python
+def get_cart_items(self, obj):
+        cart_entries = MyUserProduct.objects.filter(user=obj)
+
+        result = []
+
+        for item in cart_entries:
+            result.append({
+                "id": item.product.id,
+                "name": item.product.name,
+                "price": str(item.product.price),
+                "description": item.product.description,
+                "image_url": item.product.image_url,
+                "category": item.product.category,
+                "updated_by": item.product.updated_by,
+                "quantity": item.quantity,
+            })
+        return result
+```
+
+### 5. ProductSerializer
+
+its pretty straight forward  
+it just serializes all the products in the Product
+
+```python
+
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+
+```
+
+### 6. CreateProductSerializer
+
+he name should be self explaintory  
+it expects for 2 fields to be like below;  
+_**price: Has 10 max digits and a maximum of 2 decimal places**_  
+_**name: Uniqe**_
+
+```python
+price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    name = serializers.CharField(
+        validators=[UniqueValidator(queryset=Product.objects.all(), message="a product by this name exists!")]
+    )
+```
+
+and then the create function gets executed automaticly after the data is validated by the meta class
+
+```python
+class Meta:
+        model = Product
+        fields = ['name', 'description', 'price', 'category', 'image_url', 'updated_by']
+        read_only_fields = ['updated_by']
+
+    def create(self, validated_data):
+        validated_data['updated_by'] = self.context['request'].user
+        return super().create(validated_data)
+```
+
+_**Note**_: this line
+
+```python
+validated_data['updated_by'] = self.context['request'].user
+```
+
+it basicly goes like:  
+I dont trust frontend to send the currect user for updated_by field! let me do my own research
