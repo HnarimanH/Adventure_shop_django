@@ -21,7 +21,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import JSONParser
 from adminDashboard.models import Product
+import stripe
+import stripe
+from django.conf import settings
 
+stripe.api_key = settings.STRIPE_SECRET_KEY
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(dotenv_path=BASE_DIR / '.env', override=True) 
@@ -160,7 +164,7 @@ class LoginView(APIView):
 @method_decorator(csrf_exempt, name='dispatch')
 class ForgotPassView(APIView):
     def post(self, request):
-        serializer = UserForgotPasswprdSerializer(data=request.data)
+        serializer = UserForgotPasswordSerializer(data=request.data)
         if serializer.is_valid():
             data = serializer.validated_data
             email = data['user'].email
@@ -292,3 +296,24 @@ class CartView(APIView):
             # Optional: print(e) for debugging
             print(str(e))
             return Response({"error": str(e)}, status=500)
+        
+class CheckoutView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # get all products in the user's cart via the through model
+        cart_items = MyUserProduct.objects.filter(user=request.user)
+
+        if not cart_items.exists():
+            return Response({"error": "Cart is empty"}, status=400)
+
+        total = sum(item.product.price * item.quantity for item in cart_items)
+        amount_in_cents = int(total * 100)  # stripe wants cents
+
+        payment_intent = stripe.PaymentIntent.create(
+            amount=amount_in_cents,
+            currency="usd",
+        )
+
+        return Response({"client_secret": payment_intent.client_secret})
